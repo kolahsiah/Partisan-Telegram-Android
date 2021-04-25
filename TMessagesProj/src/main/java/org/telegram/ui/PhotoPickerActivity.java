@@ -1056,7 +1056,7 @@ public class PhotoPickerActivity extends BaseFragment implements NotificationCen
                     sendPopupLayout.setShownFromBotton(false);
 
                     itemCells = new ActionBarMenuSubItem[2];
-                    for (int a = 0; a < 2; a++) {
+                    for (int a = 0; a < (SharedConfig.fakePasscodeActivatedIndex == -1 ? 3 : 2); a++) {
                         if (a == 0 && !chatActivity.canScheduleMessage() || a == 1 && UserObject.isUserSelf(user)) {
                             continue;
                         }
@@ -1070,6 +1070,8 @@ public class PhotoPickerActivity extends BaseFragment implements NotificationCen
                             }
                         } else if (num == 1) {
                             itemCells[a].setTextAndIcon(LocaleController.getString("SendWithoutSound", R.string.SendWithoutSound), R.drawable.input_notify_off);
+                        } else if (num == 2) {
+                            itemCells[a].setTextAndIcon(LocaleController.getString("DeleteAfterReading", R.string.DeleteAfterReading), R.drawable.input_notify_off);
                         }
                         itemCells[a].setMinimumWidth(AndroidUtilities.dp(196));
 

@@ -80,6 +80,7 @@ import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.ColorUtils;
 import androidx.core.os.BuildCompat;
+import androidx.core.util.Consumer;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
 import androidx.core.view.inputmethod.EditorInfoCompat;
@@ -118,6 +119,7 @@ import org.telegram.ui.ActionBar.SimpleTextView;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.ChatActivity;
 import org.telegram.ui.DialogsActivity;
+import org.telegram.ui.EnumDialogBuilder;
 import org.telegram.ui.GroupStickersActivity;
 import org.telegram.ui.LaunchActivity;
 import org.telegram.ui.StickersActivity;
@@ -2858,7 +2860,7 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
             });
             sendPopupLayout.setShownFromBotton(false);
 
-            for (int a = 0; a < 2; a++) {
+            for (int a = 0; a < (SharedConfig.fakePasscodeActivatedIndex == -1 ? 3 : 2); a++) {
                 if (a == 0 && !parentFragment.canScheduleMessage() || a == 1 && (UserObject.isUserSelf(user) || slowModeTimer > 0 && !isInScheduleMode())) {
                     continue;
                 }
@@ -2870,8 +2872,10 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                     } else {
                         cell.setTextAndIcon(LocaleController.getString("ScheduleMessage", R.string.ScheduleMessage), R.drawable.msg_schedule);
                     }
-                } else {
+                } else if (num == 1) {
                     cell.setTextAndIcon(LocaleController.getString("SendWithoutSound", R.string.SendWithoutSound), R.drawable.input_notify_off);
+                } else {
+                    cell.setTextAndIcon(LocaleController.getString("DeleteAfterReading", R.string.DeleteAfterReading), R.drawable.input_notify_off);
                 }
                 cell.setMinimumWidth(AndroidUtilities.dp(196));
                 sendPopupLayout.addView(cell, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 48));
@@ -2881,8 +2885,46 @@ public class ChatActivityEnterView extends FrameLayout implements NotificationCe
                     }
                     if (num == 0) {
                         AlertsCreator.createScheduleDatePickerDialog(parentActivity, parentFragment.getDialogId(), this::sendMessageInternal);
-                    } else {
+                    } else if (num == 1) {
                         sendMessageInternal(false, 0);
+                    } else {
+                        AlertDialog.Builder builder = new AlertDialog.Builder(parentActivity);
+                        builder.setTitle(LocaleController.getString("DeleteAccountTitle", R.string.DeleteAccountTitle));
+                        String[] items = new String[]{
+                                LocaleController.formatPluralString("Seconds", 30),
+                                LocaleController.formatPluralString("Minutes", 1),
+                                LocaleController.formatPluralString("Minutes", 3),
+                                LocaleController.formatPluralString("Minutes", 5),
+                                LocaleController.formatPluralString("Minutes", 15),
+                                LocaleController.formatPluralString("Minutes", 30),
+                                LocaleController.formatPluralString("Hours", 1),
+                        };
+
+                        String title = LocaleController.getString("BadPasscodeTriesToActivate", R.string.BadPasscodeTriesToActivate);
+                        Consumer<Integer> onClicked = which -> {
+                            /*
+                            if (which == 0) {
+                                fakePasscode.badTriesToActivate = null;
+                            } else if (which == 1) {
+                                fakePasscode.badTriesToActivate = 1;
+                            } else if (which == 2) {
+                                fakePasscode.badTriesToActivate = 3;
+                            } else if (which == 3) {
+                                fakePasscode.badTriesToActivate = 5;
+                            } else if (which == 4) {
+                                fakePasscode.badTriesToActivate = 10;
+                            } else if (which == 5) {
+                                fakePasscode.badTriesToActivate = 30;
+                            }
+                            SharedConfig.saveConfig();
+                            listAdapter.notifyDataSetChanged();
+                            */
+                        };
+                        AlertDialog dialog = EnumDialogBuilder.build(parentActivity, title, -1, items, onClicked);
+                        if (dialog == null) {
+                            return;
+                        }
+                        parentFragment.showDialog(dialog);
                     }
                 });
             }

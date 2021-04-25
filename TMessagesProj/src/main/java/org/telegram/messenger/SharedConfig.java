@@ -132,6 +132,10 @@ public class SharedConfig {
 
     public static int distanceSystemType;
 
+    public static class DeleteAfterReadEntry {
+
+    }
+
     public static List<BadPasscodeAttempt> badPasscodeAttemptList = new ArrayList<>();
     private static class BadPasscodeAttemptWrapper {
         public List<BadPasscodeAttempt> badTries;
