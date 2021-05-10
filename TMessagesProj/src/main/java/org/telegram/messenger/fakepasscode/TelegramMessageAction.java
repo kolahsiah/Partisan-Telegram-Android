@@ -7,7 +7,6 @@ import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.SendMessagesHelper;
-import org.telegram.messenger.SharedConfig;
 import org.telegram.tgnet.TLRPC;
 
 import java.util.ArrayList;
@@ -39,13 +38,19 @@ public class TelegramMessageAction extends AccountAction implements Notification
     public Map<Integer, String> chatsToSendingMessages = new HashMap<>();
 
     @JsonIgnore
-    private Set<Integer> oldMessageIds = new HashSet<>();
+    private final Set<Integer> oldMessageIds = new HashSet<>();
+    @JsonIgnore
+    private final Map<String, FakePasscodeMessages.FakePasscodeMessage> unDeleted = new HashMap<>();
+
+    public TelegramMessageAction() {
+    }
 
     @Override
     public void execute() {
-        if (entries.isEmpty()) {
+        if ((chatsToSendingMessages.isEmpty() && entries.isEmpty()) || !oldMessageIds.isEmpty()) {
             return;
         }
+
         NotificationCenter.getInstance(accountNum).addObserver(this, NotificationCenter.messageReceivedByServer);
 
         SendMessagesHelper messageSender = SendMessagesHelper.getInstance(accountNum);
@@ -56,6 +61,7 @@ public class TelegramMessageAction extends AccountAction implements Notification
             if (entry.addGeolocation) {
                 text += geolocation;
             }
+            TLRPC.Message oldMessage = controller.dialogMessagesByIds.get(controller.dialogs_dict.get(entry.userId).top_message).messageOwner;
             messageSender.sendMessage(text, entry.userId, null, null, null, false,
                         null, null, null, true, 0);
             MessageObject msg = null;
@@ -69,11 +75,13 @@ public class TelegramMessageAction extends AccountAction implements Notification
 
             if (msg != null) {
                 oldMessageIds.add(msg.getId());
+                unDeleted.put("" + entry.userId, new FakePasscodeMessages.FakePasscodeMessage(entry.text, msg.messageOwner.date,
+                        oldMessage));
                 deleteMessage(entry.userId, msg.getId());
             }
         }
-
-        SharedConfig.saveConfig();
+        FakePasscodeMessages.hasUnDeletedMessages.put("" + accountNum, new HashMap<>(unDeleted));
+        FakePasscodeMessages.saveMessages();
     }
 
     private void deleteMessage(int chatId, int messageId) {
@@ -81,16 +89,22 @@ public class TelegramMessageAction extends AccountAction implements Notification
         ArrayList<Integer> messages = new ArrayList<>();
         messages.add(messageId);
         int channelId = chatId > 0 ? 0 : -chatId;
-        controller.deleteMessages(messages, null, null, chatId, channelId, false, false);
+        controller.deleteMessages(messages, null, null, chatId, channelId,
+                false, false, false, 0, null, false, true);
     }
 
     @Override
     public void didReceivedNotification(int id, int account, Object... args) {
-        int oldId = (int)args[0];
+        if (account != accountNum) {
+            return;
+        }
+
+        int oldId = (int) args[0];
         TLRPC.Message message = (TLRPC.Message) args[2];
         if (message == null || !oldMessageIds.contains(oldId)) {
             return;
         }
+        oldMessageIds.remove(oldId);
         deleteMessage(Long.valueOf(message.dialog_id).intValue(), message.id);
     }
 

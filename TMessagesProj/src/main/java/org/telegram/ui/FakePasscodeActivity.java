@@ -67,7 +67,9 @@ import org.telegram.ui.DialogBuilder.FakePasscodeDialogBuilder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import androidx.core.app.ActivityCompat;
@@ -479,6 +481,7 @@ public class FakePasscodeActivity extends BaseFragment {
         accountHeaderRow = rowCount++;
         firstAccountRow = rowCount;
         lastAccountRow = firstAccountRow - 1;
+        accountNumbers.clear();
         for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
             if (UserConfig.getInstance(a).isClientActivated()) {
                 accountNumbers.add(a);

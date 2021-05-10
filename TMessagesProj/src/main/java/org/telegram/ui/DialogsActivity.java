@@ -114,6 +114,7 @@ import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.ActionBar.ThemeDescription;
 import org.telegram.ui.Adapters.DialogsAdapter;
 import org.telegram.ui.Adapters.DialogsSearchAdapter;
+import org.telegram.ui.Adapters.DrawerLayoutAdapter;
 import org.telegram.ui.Adapters.FiltersView;
 import org.telegram.ui.Cells.AccountSelectCell;
 import org.telegram.ui.Cells.ArchiveHintInnerCell;
@@ -3595,6 +3596,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 } else if (id == 1) {
                     SharedConfig.appLocked = !SharedConfig.appLocked;
                     SharedConfig.saveConfig();
+                    if (SharedConfig.fakePasscodeActivatedIndex == -1) {
+                        getParentActivity().finishAffinity();
+                    }
                     updatePasscodeButton(true);
                 } else if (id == 2) {
                     presentFragment(new ProxyListActivity());
@@ -3865,6 +3869,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     @Override
     public void onResume() {
         super.onResume();
+
+        if (sideMenu != null) {
+            ((DrawerLayoutAdapter)sideMenu.getAdapter()).checkAccountChanges();
+        }
+
         if (!parentLayout.isInPreviewMode() && blurredView != null && blurredView.getVisibility() == View.VISIBLE) {
             blurredView.setVisibility(View.GONE);
             blurredView.setBackground(null);
@@ -4734,7 +4743,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 long did;
                 if (item instanceof TLRPC.Chat) {
                     TLRPC.Chat chat = (TLRPC.Chat) item;
-                    builder.setMessage(LocaleController.formatString("ClearSearchSingleChatAlertText", R.string.ClearSearchSingleChatAlertText, chat.title));
+                    String title = UserConfig.getChatTitleOverride(currentAccount, chat.id);
+                    if (title == null) {
+                        title = chat.title;
+                    }
+                    builder.setMessage(LocaleController.formatString("ClearSearchSingleChatAlertText", R.string.ClearSearchSingleChatAlertText, title));
                     did = -chat.id;
                 } else if (item instanceof TLRPC.User) {
                     TLRPC.User user = (TLRPC.User) item;
@@ -6699,13 +6712,17 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     if (chat == null) {
                         return;
                     }
+                    String chatTitle = UserConfig.getChatTitleOverride(currentAccount, chat.id);
+                    if (chatTitle == null) {
+                        chatTitle = chat.title;
+                    }
                     if (addToGroupAlertString != null) {
                         title = LocaleController.getString("AddToTheGroupAlertTitle", R.string.AddToTheGroupAlertTitle);
-                        message = LocaleController.formatStringSimple(addToGroupAlertString, chat.title);
+                        message = LocaleController.formatStringSimple(addToGroupAlertString, chatTitle);
                         buttonText = LocaleController.getString("Add", R.string.Add);
                     } else {
                         title = LocaleController.getString("SendMessageTitle", R.string.SendMessageTitle);
-                        message = LocaleController.formatStringSimple(selectAlertStringGroup, chat.title);
+                        message = LocaleController.formatStringSimple(selectAlertStringGroup, chatTitle);
                         buttonText = LocaleController.getString("Send", R.string.Send);
                     }
                 }
